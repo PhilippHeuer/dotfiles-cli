@@ -1,0 +1,6 @@
+# goland
+.idea/*
+
+# generated artifacts
+.dist/*
+.tmp/*
