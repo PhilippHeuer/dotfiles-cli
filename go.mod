@@ -1,4 +1,4 @@
-module github.com/PhilippHeuer/dotfilessetup
+module github.com/PhilippHeuer/dotfiles-cli
 
 go 1.21
 

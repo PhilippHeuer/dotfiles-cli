@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/PhilippHeuer/dotfilessetup/pkg/cmd"
+	"github.com/PhilippHeuer/dotfiles-cli/pkg/cmd"
 	"github.com/rs/zerolog/log"
 )
 

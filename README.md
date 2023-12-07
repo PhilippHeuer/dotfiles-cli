@@ -20,11 +20,11 @@ chmod +x ~/.local/bin/dotfiles
 
 ## Usage
 
-| Command                                               | Description                                                              |
-|-------------------------------------------------------|--------------------------------------------------------------------------|
-| `dotfiles install ~/git/your-dotfiles --mode symlink` | Installs all files by creating symlinks                                  |
-| `dotfiles install ~/git/your-dotfiles --mode copy`    | Installs all files by making copies                                      |
-| `dotfiles clean`                                      | Cleans all files tracked in dotfiles install state (keeping directories) |
+| Command                                               | Description                                                |
+|-------------------------------------------------------|------------------------------------------------------------|
+| `dotfiles install ~/git/your-dotfiles --mode symlink` | Installs all files by creating symlinks                    |
+| `dotfiles install ~/git/your-dotfiles --mode copy`    | Installs all files by making copies                        |
+| `dotfiles clean`                                      | Cleans all files tracked, keeping directories (from state) |
 
 > The `--mode` flag is optional, the default is `copy`.
 

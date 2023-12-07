@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/PhilippHeuer/dotfilessetup/pkg/config"
-	"github.com/PhilippHeuer/dotfilessetup/pkg/util"
+	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
+	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
