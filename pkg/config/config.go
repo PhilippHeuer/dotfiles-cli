@@ -12,16 +12,16 @@ type DotfilesConfig struct {
 }
 
 type Dir struct {
-	Path       string      `yaml:"path"`
-	Target     string      `yaml:"target"`
-	Conditions []Condition `yaml:"conditions"` // At least one condition must match for the rule to apply
+	Path   string  `yaml:"path"`
+	Target string  `yaml:"target"`
+	Rules  []Rules `yaml:"rules"` // At least one condition must match for the rule to apply
 }
 
-type Condition struct {
+type Rules struct {
 	Rule string `yaml:"rule"`
 }
 
-func EvaluateConditions(conditions []Condition) bool {
+func EvaluateRules(conditions []Rules) bool {
 	if len(conditions) == 0 {
 		return true
 	}

@@ -75,7 +75,7 @@ func installCmd() *cobra.Command {
 				targetPath := util.ResolvePath(dir.Target)
 
 				// skip if conditions do not match
-				match := config.EvaluateConditions(dir.Conditions)
+				match := config.EvaluateRules(dir.Rules)
 				log.Debug().Str("dir", fullPath).Str("target", targetPath).Bool("condition-result", match).Msg("processing directory")
 				if !match {
 					continue
