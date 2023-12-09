@@ -73,7 +73,13 @@ func installCmd() *cobra.Command {
 			for _, dir := range conf.Directories {
 				fullPath := filepath.Join(source, dir.Path)
 				targetPath := util.ResolvePath(dir.Target)
-				log.Debug().Str("dir", fullPath).Str("target", targetPath).Msg("processing directory")
+
+				// skip if conditions do not match
+				match := config.EvaluateConditions(dir.Conditions)
+				log.Debug().Str("dir", fullPath).Str("target", targetPath).Bool("condition-result", match).Msg("processing directory")
+				if !match {
+					continue
+				}
 
 				// get all files in source
 				files, filesErr := util.GetAllFiles(fullPath)
@@ -94,6 +100,7 @@ func installCmd() *cobra.Command {
 					if linkErr != nil {
 						log.Fatal().Err(linkErr).Str("source", file).Str("target", targetFile).Msg("failed to link file")
 					}
+					log.Trace().Str("source", file).Str("target", targetFile).Str("mode", mode).Msg("process file")
 
 					// state
 					managedFiles = append(managedFiles, targetFile)
