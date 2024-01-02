@@ -15,8 +15,13 @@ func GetAllFiles(root string) ([]string, error) {
 		if err != nil {
 			return err
 		}
+
 		if !info.IsDir() {
-			files = append(files, path)
+			absPath, absPathErr := filepath.Abs(path)
+			if absPathErr != nil {
+				return fmt.Errorf("failed to get absolute path for %s: %w", path, absPathErr)
+			}
+			files = append(files, absPath)
 		}
 		return nil
 	})
