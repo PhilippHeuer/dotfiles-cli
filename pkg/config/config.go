@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"os/user"
 
 	"github.com/cidverse/go-rules/pkg/expr"
@@ -32,7 +33,8 @@ func EvaluateRules(conditions []Rules) bool {
 		log.Fatal().Err(err).Msg("failed to get current user")
 	}
 	ctx := map[string]interface{}{
-		"user": currentUser.Username,
+		"user":  currentUser.Username,
+		"theme": os.Getenv("DOTFILE_THEME"),
 	}
 
 	// evaluate
