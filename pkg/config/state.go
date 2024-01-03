@@ -6,6 +6,7 @@ import (
 )
 
 type DotfileState struct {
+	Source       string   `json:"source"`
 	ManagedFiles []string `json:"managed_files"`
 }
 

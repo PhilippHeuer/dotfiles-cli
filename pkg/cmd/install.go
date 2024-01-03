@@ -18,13 +18,28 @@ func installCmd() *cobra.Command {
 			// properties
 			mode, _ := cmd.Flags().GetString("mode")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			if len(args) != 1 {
-				log.Fatal().Msg("provide one source directory")
+
+			// load state
+			stateFile := config.StateFile()
+			err := util.CreateParentDirectory(stateFile)
+			if err != nil {
+				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to create state directory")
 			}
-			source := args[0]
-			if source == "" {
-				log.Fatal().Msg("source directory can not be empty")
+			state, err := config.LoadState(stateFile)
+			if err != nil {
+				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to parse state file")
 			}
+
+			// source dir (first arg or from state)
+			var source string
+			if len(args) == 1 && args[0] != "" {
+				source = args[0]
+			} else if len(args) == 0 && state.Source != "" {
+				source = state.Source
+			} else {
+				log.Fatal().Msg("provide the source directory as first argument")
+			}
+			state.Source = source
 
 			// load config
 			conf, err := config.Load(filepath.Join(source, "dotfiles.yaml"))
@@ -34,17 +49,6 @@ func installCmd() *cobra.Command {
 
 			// information
 			log.Info().Bool("dry-run", dryRun).Str("mode", mode).Str("source", source).Msg("installing dotfiles")
-
-			// load state
-			stateFile := config.StateFile()
-			err = util.CreateParentDirectory(stateFile)
-			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to create state directory")
-			}
-			state, err := config.LoadState(stateFile)
-			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to parse state file")
-			}
 
 			// remove files
 			var managedFiles []string
