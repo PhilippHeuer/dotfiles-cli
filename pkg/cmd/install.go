@@ -75,8 +75,19 @@ func installCmd() *cobra.Command {
 
 			// process directories
 			for _, dir := range conf.Directories {
-				fullPath := filepath.Join(source, dir.Path)
+				fullPath := calculateFullPath(source, dir.Path)
 				targetPath := util.ResolvePath(dir.Target)
+
+				// check alternative paths
+				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+					for _, p := range dir.Paths {
+						fp := calculateFullPath(source, p)
+						if _, err := os.Stat(fp); !os.IsNotExist(err) {
+							fullPath = fp
+							break
+						}
+					}
+				}
 
 				// skip if conditions do not match
 				match := config.EvaluateRules(dir.Rules)
@@ -88,7 +99,8 @@ func installCmd() *cobra.Command {
 				// get all files in source
 				files, filesErr := util.GetAllFiles(fullPath)
 				if filesErr != nil {
-					log.Fatal().Err(filesErr).Str("source", source).Msg("failed to get files")
+					log.Info().Err(filesErr).Str("source", source).Msg("source does not exist, skipping")
+					continue
 				}
 
 				// process files
@@ -124,4 +136,12 @@ func installCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolP("dry-run", "d", false, "dry run")
 
 	return cmd
+}
+
+func calculateFullPath(source string, path string) string {
+	fullPath := path
+	if !filepath.IsAbs(path) && path != "" && path[0] != filepath.Separator {
+		fullPath = filepath.Join(source, path)
+	}
+	return fullPath
 }

@@ -13,9 +13,10 @@ type DotfilesConfig struct {
 }
 
 type Dir struct {
-	Path   string  `yaml:"path"`
-	Target string  `yaml:"target"`
-	Rules  []Rules `yaml:"rules"` // At least one condition must match for the rule to apply
+	Path   string   `yaml:"path"`
+	Paths  []string `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
+	Target string   `yaml:"target"`
+	Rules  []Rules  `yaml:"rules"` // At least one condition must match for the rule to apply
 }
 
 type Rules struct {
