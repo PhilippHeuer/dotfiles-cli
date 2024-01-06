@@ -76,7 +76,7 @@ func LinkFile(source string, target string, dryRun bool, mode string) error {
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
 	} else if mode == "symlink" {
-		if err := os.Symlink(source, target); err != nil {
+		if err := createOrUpdateSymlink(source, target); err != nil {
 			return fmt.Errorf("failed to create symlink: %w", err)
 		}
 	} else {
@@ -102,6 +102,40 @@ func copyFile(source string, target string) error {
 	_, err = io.Copy(targetFile, sourceFile)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func createOrUpdateSymlink(source string, target string) error {
+	// check if symlink exists
+	linkInfo, err := os.Lstat(target)
+	if err == nil {
+		if linkInfo.Mode()&os.ModeSymlink != 0 { // is symlink
+			currentTarget, err := os.Readlink(target)
+			if err != nil {
+				return fmt.Errorf("failed to read existing symlink target: %w", err)
+			}
+
+			// skip if symlink points to the same target
+			if currentTarget == source {
+				return nil
+			}
+
+			// remove old symlink
+			if err := os.Remove(target); err != nil {
+				return fmt.Errorf("failed to remove existing symlink: %w", err)
+			}
+		} else { // is file/directory
+			if err := os.Remove(target); err != nil {
+				return fmt.Errorf("failed to remove existing file/directory: %w", err)
+			}
+		}
+	}
+
+	// create symlink
+	if err := os.Symlink(source, target); err != nil {
+		return fmt.Errorf("failed to create symlink: %w", err)
 	}
 
 	return nil
