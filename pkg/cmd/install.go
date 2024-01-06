@@ -50,6 +50,14 @@ func installCmd() *cobra.Command {
 			// information
 			log.Info().Bool("dry-run", dryRun).Str("mode", mode).Str("source", source).Msg("installing dotfiles")
 
+			// save state on exit or error
+			defer func() {
+				saveErr := config.SaveState(stateFile, state)
+				if saveErr != nil {
+					log.Fatal().Err(saveErr).Msg("failed to save state")
+				}
+			}()
+
 			// remove files
 			var managedFiles []string
 			for _, file := range state.ManagedFiles {
@@ -119,15 +127,8 @@ func installCmd() *cobra.Command {
 					log.Trace().Str("source", file).Str("target", targetFile).Str("mode", mode).Msg("process file")
 
 					// state
-					managedFiles = append(managedFiles, targetFile)
+					state.ManagedFiles = append(state.ManagedFiles, targetFile)
 				}
-			}
-
-			// save state
-			state.ManagedFiles = managedFiles
-			saveErr := config.SaveState(stateFile, state)
-			if saveErr != nil {
-				log.Fatal().Err(saveErr).Msg("failed to save state")
 			}
 		},
 	}
