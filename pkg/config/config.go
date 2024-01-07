@@ -28,14 +28,24 @@ func EvaluateRules(conditions []Rules) bool {
 		return true
 	}
 
-	// context
+	// user
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get current user")
 	}
+
+	// context
 	ctx := map[string]interface{}{
 		"user":  currentUser.Username,
 		"theme": os.Getenv("DOTFILE_THEME"),
+	}
+
+	// wsl distro
+	wslDistro := os.Getenv("WSL_DISTRO_NAME")
+	if wslDistro != "" {
+		ctx["wsl"] = true
+	} else {
+		ctx["wsl"] = false
 	}
 
 	// evaluate
