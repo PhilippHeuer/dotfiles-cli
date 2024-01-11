@@ -23,7 +23,7 @@ type Rules struct {
 	Rule string `yaml:"rule"`
 }
 
-func EvaluateRules(conditions []Rules) bool {
+func EvaluateRules(conditions []Rules, sourceFile string) bool {
 	if len(conditions) == 0 {
 		return true
 	}
@@ -38,6 +38,7 @@ func EvaluateRules(conditions []Rules) bool {
 	ctx := map[string]interface{}{
 		"user":  currentUser.Username,
 		"theme": os.Getenv("DOTFILE_THEME"),
+		"file":  sourceFile,
 	}
 
 	// wsl distro
@@ -50,6 +51,7 @@ func EvaluateRules(conditions []Rules) bool {
 
 	// evaluate
 	for _, c := range conditions {
+		// match expression
 		match, cErr := expr.EvaluateRule(c.Rule, ctx)
 		if cErr != nil {
 			log.Fatal().Err(cErr).Str("rule", c.Rule).Msg("failed to evaluate condition, check your configuration file syntax")

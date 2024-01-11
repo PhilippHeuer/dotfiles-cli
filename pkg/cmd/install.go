@@ -97,13 +97,6 @@ func installCmd() *cobra.Command {
 					}
 				}
 
-				// skip if conditions do not match
-				match := config.EvaluateRules(dir.Rules)
-				log.Debug().Str("dir", fullPath).Str("target", targetPath).Bool("condition-result", match).Msg("processing directory")
-				if !match {
-					continue
-				}
-
 				// get all files in source
 				files, filesErr := util.GetAllFiles(fullPath)
 				if filesErr != nil {
@@ -118,6 +111,13 @@ func installCmd() *cobra.Command {
 						log.Fatal().Err(fileErr).Str("source", file).Msg("failed to get relative file")
 					}
 					targetFile := filepath.Join(targetPath, relativeFile)
+
+					// skip if conditions do not match
+					match := config.EvaluateRules(dir.Rules, file)
+					log.Debug().Str("dir", fullPath).Str("target", targetPath).Bool("condition-result", match).Msg("processing directory")
+					if !match {
+						continue
+					}
 
 					// copy or link file
 					linkErr := util.LinkFile(file, targetFile, dryRun, mode)
