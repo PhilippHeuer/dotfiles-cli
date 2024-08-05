@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"os/user"
+	"slices"
 
 	"github.com/cidverse/go-rules/pkg/expr"
 	"github.com/rs/zerolog/log"
@@ -20,7 +21,8 @@ type Dir struct {
 }
 
 type Rules struct {
-	Rule string `yaml:"rule"`
+	Rule    string   `yaml:"rule"`
+	Exclude []string `yaml:"exclude"` // Exclude paths or files
 }
 
 func EvaluateRules(conditions []Rules, sourceFile string) bool {
@@ -51,6 +53,11 @@ func EvaluateRules(conditions []Rules, sourceFile string) bool {
 
 	// evaluate
 	for _, c := range conditions {
+		// excludes
+		if slices.Contains(c.Exclude, sourceFile) {
+			return false
+		}
+
 		// match expression
 		match, cErr := expr.EvaluateRule(c.Rule, ctx)
 		if cErr != nil {
