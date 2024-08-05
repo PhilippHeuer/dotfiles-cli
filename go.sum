@@ -1,5 +1,7 @@
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
+github.com/cidverse/cidverseutils/zerologconfig v0.1.0 h1:iUJ9ANUCHH6IsM8MoeOv5Q8QvCd+iDl4X8QL/nfAdVw=
+github.com/cidverse/cidverseutils/zerologconfig v0.1.0/go.mod h1:X3mGXDU1BtdGk818+a0UL6vzhU9lLb8/oEslSnVQzuA=
 github.com/cidverse/go-rules v0.0.0-20231112122021-075e5e6f8abc h1:eVuHW4U9BoiqjIwWPATHRm6oiphVlm3Jn7QgHGgeVq8=
 github.com/cidverse/go-rules v0.0.0-20231112122021-075e5e6f8abc/go.mod h1:1E+4h0XkcYJVq3RHoYQradnCt7wk3JgnuRRnfeiwAzE=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
