@@ -4,7 +4,7 @@
 # DO NOT EDIT!
 
 # name
-name: CID - PullRequest
+name: CID - DefaultBranch
 
 # triggers
 on:
@@ -20,9 +20,11 @@ on:
           - info
           - warn
           - error
-  pull_request:
+  push:
     branches:
       - main
+    tags:
+      - v*.*.*
     paths-ignore:
       - README.md
       - LICENSE
@@ -233,3 +235,93 @@ jobs:
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           cid --log-level=${CID_LOGLEVEL:-info} workflow run "$CID_WORKFLOW" --stage scan
+  # package
+  package:
+    name: Package
+    runs-on: ubuntu-22.04 # https://github.com/actions/runner-images
+    needs: [build]
+    permissions:
+      id-token: write # provenance signing
+    timeout-minutes: 30
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          disable-telemetry: true
+          disable-sudo: true
+          egress-policy: ${{ env.EGRESS_POLICY }}
+          allowed-endpoints: ${{ env.EGRESS_POLICY_ALLOWED_ENDPOINTS }} ${{ env.EGRESS_POLICY_ALLOWED_ENDPOINTS_PACKAGE }}
+      - name: prepare environment
+        uses: cidverse/ghact-cid-setup@31e7177a4d98b05a05b4671f70df0ed199bfb9a1 # v0.1.0
+        with:
+          version: ${{ env.CID_VERSION }}
+      - name: checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+      - name: download artifacts > build
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: build-${{ github.run_id }}
+          path: .dist
+        continue-on-error: true
+      - name: package
+        env:
+          CID_WORKFLOW: ${{ env.CID_WORKFLOW }}
+          CID_LOGLEVEL: ${{ env.CID_LOGLEVEL }}
+        run: |
+          cid --log-level=${CID_LOGLEVEL:-info} workflow run "$CID_WORKFLOW" --stage package
+      - name: upload artifacts
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: package-${{ github.run_id }}
+          path: .dist
+          retention-days: 1
+          if-no-files-found: ignore
+  # publish
+  publish:
+    name: Publish
+    runs-on: ubuntu-22.04 # https://github.com/actions/runner-images
+    needs: [package, scan]
+    permissions:
+      # create release
+      contents: write
+      # publish packages
+      packages: write
+    if: startsWith(github.ref, 'refs/pull/') == false
+    timeout-minutes: 30
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        with:
+          disable-telemetry: true
+          disable-sudo: true
+          egress-policy: ${{ env.EGRESS_POLICY }}
+          allowed-endpoints: ${{ env.EGRESS_POLICY_ALLOWED_ENDPOINTS }} ${{ env.EGRESS_POLICY_ALLOWED_ENDPOINTS_PUBLISH }}
+      - name: prepare environment
+        uses: cidverse/ghact-cid-setup@31e7177a4d98b05a05b4671f70df0ed199bfb9a1 # v0.1.0
+        with:
+          version: ${{ env.CID_VERSION }}
+      - name: checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+      - name: download artifacts > package
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: package-${{ github.run_id }}
+          path: .dist
+        continue-on-error: true
+      - name: publish
+        env:
+          CID_WORKFLOW: ${{ env.CID_WORKFLOW }}
+          CID_LOGLEVEL: ${{ env.CID_LOGLEVEL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_REPO_URL: ${{ secrets.MAVEN_REPO_URL }}
+          MAVEN_REPO_USERNAME: ${{ secrets.MAVEN_REPO_USERNAME }}
+          MAVEN_REPO_PASSWORD: ${{ secrets.MAVEN_REPO_PASSWORD }}
+          MAVEN_GPG_SIGN_PRIVATEKEY: ${{ secrets.MAVEN_GPG_SIGN_PRIVATEKEY }}
+          MAVEN_GPG_SIGN_PASSWORD: ${{ secrets.MAVEN_GPG_SIGN_PASSWORD }}
+          MAVEN_GPG_SIGN_KEYID: ${{ secrets.MAVEN_GPG_SIGN_KEYID }}
+        run: |
+          cid --log-level=${CID_LOGLEVEL:-info} workflow run "$CID_WORKFLOW" --stage publish
