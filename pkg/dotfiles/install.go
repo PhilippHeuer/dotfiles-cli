@@ -31,7 +31,7 @@ func Install(dir string, mode string, dryRun bool) error {
 	var source string
 	if dir != "" {
 		source = dir
-	} else if dir == "" && state.Source != "" {
+	} else if state.Source != "" {
 		source = state.Source
 	} else {
 		log.Fatal().Msg("provide the source directory as first argument")
@@ -172,6 +172,27 @@ func Install(dir string, mode string, dryRun bool) error {
 
 			// state
 			state.ManagedFiles = append(state.ManagedFiles, f.Target)
+		}
+	}
+
+	// theme activation
+	if state.Theme != "" {
+		var themeCommands []config.ThemeCommand
+		for _, theme := range conf.Themes {
+			if theme.Name == state.Theme { // Assuming 'Name' is the field that identifies the theme
+				themeCommands = theme.Commands
+				break
+			}
+		}
+
+		for _, cmd := range themeCommands {
+			log.Debug().Str("command", cmd.Command).Msg("executing theme command")
+			if !dryRun {
+				err := util.RunCommand(cmd.Command)
+				if err != nil {
+					log.Warn().Err(err).Str("command", cmd.Command).Msg("failed to execute theme activation command")
+				}
+			}
 		}
 	}
 

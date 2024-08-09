@@ -15,7 +15,12 @@ type DotfilesConfig struct {
 }
 
 type ThemeConfig struct {
-	Name string `yaml:"name"`
+	Name     string         `yaml:"name"`
+	Commands []ThemeCommand `yaml:"commands"`
+}
+
+type ThemeCommand struct {
+	Command string `yaml:"command"`
 }
 
 type Dir struct {
