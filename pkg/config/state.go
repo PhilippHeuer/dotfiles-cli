@@ -3,6 +3,9 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
+
+	"github.com/adrg/xdg"
 )
 
 type DotfileState struct {
@@ -15,11 +18,7 @@ func StateFile() string {
 	if os.Getenv("DOTFILE_STATE_FILE") != "" {
 		return os.ExpandEnv("$DOTFILE_STATE_FILE")
 	}
-	if os.Getenv("XDG_STATE_HOME") != "" {
-		return os.ExpandEnv("$XDG_STATE_HOME/dotfiles/state.json")
-	}
-
-	return os.ExpandEnv("$HOME/.local/state/dotfiles/state.json")
+	return filepath.Join(xdg.StateHome, "dotfiles", "state.json")
 }
 
 func LoadState(file string) (*DotfileState, error) {

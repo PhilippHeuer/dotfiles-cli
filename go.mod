@@ -3,6 +3,7 @@ module github.com/PhilippHeuer/dotfiles-cli
 go 1.21
 
 require (
+	github.com/adrg/xdg v0.5.0
 	github.com/cidverse/cidverseutils/zerologconfig v0.1.0
 	github.com/cidverse/go-rules v0.0.0-20231112122021-075e5e6f8abc
 	github.com/rs/zerolog v1.33.0

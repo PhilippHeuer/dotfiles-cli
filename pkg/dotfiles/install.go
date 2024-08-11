@@ -7,6 +7,7 @@ import (
 
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
+	"github.com/adrg/xdg"
 	"github.com/rs/zerolog/log"
 )
 
@@ -185,6 +186,11 @@ func Install(dir string, mode string, dryRun bool) error {
 			}
 		}
 
+		err = writeStateFiles(state.Source, state.Theme)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to write state files")
+		}
+
 		for _, cmd := range themeCommands {
 			log.Debug().Str("command", cmd.Command).Msg("executing theme command")
 			if !dryRun {
@@ -194,6 +200,31 @@ func Install(dir string, mode string, dryRun bool) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func writeStateFiles(sourceDir string, theme string) error {
+	// create state directory
+	stateDir := filepath.Join(xdg.StateHome, "dotfiles")
+	err := util.CreateParentDirectory(stateDir)
+	if err != nil {
+		return err
+	}
+
+	// write source file
+	sourceFile := filepath.Join(stateDir, "source-dir")
+	err = os.WriteFile(sourceFile, []byte(sourceDir), 0644)
+	if err != nil {
+		return err
+	}
+
+	// write theme file
+	themeFile := filepath.Join(stateDir, "current-theme")
+	err = os.WriteFile(themeFile, []byte(theme), 0644)
+	if err != nil {
+		return err
 	}
 
 	return nil
