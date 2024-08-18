@@ -2,6 +2,7 @@ package dotfiles
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -68,28 +69,7 @@ func Install(dir string, mode string, dryRun bool) error {
 	}()
 
 	// remove files
-	var managedFiles []string
-	for _, file := range state.ManagedFiles {
-		log.Debug().Str("file", file).Msg("removing file")
-		if dryRun {
-			managedFiles = append(managedFiles, file)
-			continue
-		}
-
-		// check if file exists
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			log.Trace().Str("file", file).Msg("file does not exist, already deleted")
-			continue
-		}
-
-		// delete file
-		removeErr := os.Remove(file)
-		if removeErr != nil {
-			managedFiles = append(managedFiles, file)
-			log.Warn().Str("file", file).Msg("failed to remove file")
-		}
-	}
-	state.ManagedFiles = managedFiles
+	state.ManagedFiles = DeleteManagedFiles(state.ManagedFiles, dryRun)
 
 	// process directories
 	for _, dir := range conf.Directories {
@@ -206,29 +186,31 @@ func Install(dir string, mode string, dryRun bool) error {
 		}
 	}
 
+	// write state files
+	err = writeStateFiles(state.Source, state.Theme)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to write state files")
+	}
+
 	// theme activation
-	if state.Theme != "" {
-		var themeCommands []config.ThemeCommand
-		for _, theme := range conf.Themes {
-			if theme.Name == state.Theme { // Assuming 'Name' is the field that identifies the theme
-				themeCommands = theme.Commands
-				break
-			}
-		}
-
-		err = writeStateFiles(state.Source, state.Theme)
+	if theme != nil && !dryRun {
+		err = activateTheme(theme)
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to write state files")
+			log.Fatal().Err(err).Str("theme", themeName).Msg("failed to activate theme")
 		}
+	}
 
-		for _, cmd := range themeCommands {
-			log.Debug().Str("command", cmd.Command).Msg("executing theme command")
-			if !dryRun {
-				err := util.RunCommand(cmd.Command)
-				if err != nil {
-					log.Warn().Err(err).Str("command", cmd.Command).Msg("failed to execute theme activation command")
-				}
-			}
+	return nil
+}
+
+// activateTheme executes the theme activation commands, if available
+func activateTheme(theme *config.ThemeConfig) error {
+	for _, cmd := range theme.Commands {
+		log.Debug().Str("command", cmd.Command).Msg("executing theme command")
+
+		err := util.RunCommand(cmd.Command)
+		if err != nil {
+			return errors.Join(fmt.Errorf("failed to execute theme activation command: %s", cmd), err)
 		}
 	}
 
