@@ -110,6 +110,13 @@ func copyFile(source string, target string) error {
 		return err
 	}
 
+	if isExecutable(source) {
+		err = makeExecutableByOwner(target)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -137,6 +144,13 @@ func copyFileWithTemplate(source string, target string, data map[string]string) 
 	err = tmpl.Execute(targetFile, data)
 	if err != nil {
 		return err
+	}
+
+	if isExecutable(source) {
+		err = makeExecutableByOwner(target)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -171,6 +185,29 @@ func createOrUpdateSymlink(source string, target string) error {
 	// create symlink
 	if err := os.Symlink(source, target); err != nil {
 		return fmt.Errorf("failed to create symlink: %w", err)
+	}
+
+	return nil
+}
+
+func isExecutable(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	return info.Mode()&0100 != 0
+}
+
+func makeExecutableByOwner(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	newMode := info.Mode() | 0100
+	if err := os.Chmod(path, newMode); err != nil {
+		return err
 	}
 
 	return nil

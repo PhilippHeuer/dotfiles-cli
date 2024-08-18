@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
+	"github.com/PhilippHeuer/dotfiles-cli/pkg/dotfiles"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -29,27 +28,7 @@ func cleanCmd() *cobra.Command {
 			}
 
 			// remove files
-			var managedFiles []string
-			for _, file := range state.ManagedFiles {
-				log.Debug().Str("file", file).Msg("removing file")
-				if dryRun {
-					continue
-				}
-
-				// check if file exists
-				if _, err := os.Stat(file); os.IsNotExist(err) {
-					log.Trace().Str("file", file).Msg("file does not exist, already deleted")
-					continue
-				}
-
-				// delete file
-				removeErr := os.Remove(file)
-				if removeErr != nil {
-					managedFiles = append(managedFiles, file)
-					log.Warn().Str("file", file).Msg("failed to remove file")
-				}
-			}
-			state.ManagedFiles = managedFiles
+			state.ManagedFiles = dotfiles.DeleteManagedFiles(state.ManagedFiles, dryRun)
 
 			// save state
 			if !dryRun {

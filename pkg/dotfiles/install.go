@@ -2,7 +2,6 @@ package dotfiles
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,6 +9,7 @@ import (
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/adrg/xdg"
+	"github.com/cidverse/go-rules/pkg/expr"
 	"github.com/rs/zerolog/log"
 )
 
@@ -50,6 +50,7 @@ func Install(dir string, mode string, dryRun bool) error {
 
 	// theme
 	themeName := os.Getenv("DOTFILE_THEME")
+	originalThemeName := state.Theme
 	if themeName != "" {
 		state.Theme = themeName
 	} else {
@@ -194,7 +195,7 @@ func Install(dir string, mode string, dryRun bool) error {
 
 	// theme activation
 	if theme != nil && !dryRun {
-		err = activateTheme(theme)
+		err = activateTheme(theme, originalThemeName)
 		if err != nil {
 			log.Fatal().Err(err).Str("theme", themeName).Msg("failed to activate theme")
 		}
@@ -204,13 +205,32 @@ func Install(dir string, mode string, dryRun bool) error {
 }
 
 // activateTheme executes the theme activation commands, if available
-func activateTheme(theme *config.ThemeConfig) error {
+func activateTheme(theme *config.ThemeConfig, originalThemeName string) error {
 	for _, cmd := range theme.Commands {
 		log.Debug().Str("command", cmd.Command).Msg("executing theme command")
 
+		if cmd.Condition != "" {
+			match, err := expr.EvalBooleanExpression(cmd.Condition, map[string]interface{}{
+				"env": os.Environ(),
+			})
+			if err != nil {
+				log.Warn().Err(err).Str("condition", cmd.Condition).Msg("failed to evaluate theme activation command condition")
+				continue
+			}
+
+			if !match {
+				continue
+			}
+		}
+		if cmd.OnChange && originalThemeName == theme.Name {
+			log.Debug().Str("command", cmd.Command).Msg("command not executed, theme did not change")
+			continue
+		}
+
 		err := util.RunCommand(cmd.Command)
 		if err != nil {
-			return errors.Join(fmt.Errorf("failed to execute theme activation command: %s", cmd), err)
+			log.Warn().Err(err).Str("command", cmd.Command).Msg("failed to execute theme activation command")
+			// return errors.Join(fmt.Errorf("failed to execute theme activation command: %s", cmd), err)
 		}
 	}
 

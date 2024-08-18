@@ -30,7 +30,9 @@ type ThemeConfig struct {
 }
 
 type ThemeCommand struct {
-	Command string `yaml:"command"`
+	Command   string `yaml:"command"`
+	OnChange  bool   `yaml:"on_change"`
+	Condition string `yaml:"condition"`
 }
 
 type Dir struct {
