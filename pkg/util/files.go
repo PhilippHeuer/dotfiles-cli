@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 func GetAllFiles(root string) ([]string, error) {
@@ -55,7 +56,7 @@ func CreateParentDirectory(path string) error {
 	return nil
 }
 
-func LinkFile(source string, target string, dryRun bool, mode string) error {
+func LinkFile(source string, target string, dryRun bool, mode string, properties map[string]string) error {
 	if dryRun {
 		return nil
 	}
@@ -71,15 +72,20 @@ func LinkFile(source string, target string, dryRun bool, mode string) error {
 	}
 
 	// create symlink
-	if mode == "copy" {
+	switch mode {
+	case "template":
+		if err := copyFileWithTemplate(source, target, properties); err != nil {
+			return fmt.Errorf("failed to copy file with template: %w", err)
+		}
+	case "copy":
 		if err := copyFile(source, target); err != nil {
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
-	} else if mode == "symlink" {
+	case "symlink":
 		if err := createOrUpdateSymlink(source, target); err != nil {
 			return fmt.Errorf("failed to create symlink: %w", err)
 		}
-	} else {
+	default:
 		return fmt.Errorf("invalid mode: %s (valid values: copy, symlink)", mode)
 	}
 
@@ -100,6 +106,35 @@ func copyFile(source string, target string) error {
 	defer targetFile.Close()
 
 	_, err = io.Copy(targetFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyFileWithTemplate(source string, target string, data map[string]string) error {
+	sourceFile, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	targetFile, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer targetFile.Close()
+
+	sourceContent, err := io.ReadAll(sourceFile)
+	if err != nil {
+		return err
+	}
+	tmpl, err := template.New("template").Parse(string(sourceContent))
+	if err != nil {
+		return err
+	}
+	err = tmpl.Execute(targetFile, data)
 	if err != nil {
 		return err
 	}

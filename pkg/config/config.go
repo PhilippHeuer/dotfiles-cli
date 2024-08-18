@@ -14,9 +14,19 @@ type DotfilesConfig struct {
 	Directories []Dir         `yaml:"directories"`
 }
 
+func (c *DotfilesConfig) GetTheme(name string) *ThemeConfig {
+	for _, t := range c.Themes {
+		if t.Name == name {
+			return &t
+		}
+	}
+	return nil
+}
+
 type ThemeConfig struct {
-	Name     string         `yaml:"name"`
-	Commands []ThemeCommand `yaml:"commands"`
+	Name       string            `yaml:"name"`
+	Properties map[string]string `yaml:"properties"`
+	Commands   []ThemeCommand    `yaml:"commands"`
 }
 
 type ThemeCommand struct {
@@ -24,11 +34,12 @@ type ThemeCommand struct {
 }
 
 type Dir struct {
-	Path       string      `yaml:"path"`
-	Paths      []string    `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
-	Target     string      `yaml:"target"`
-	Rules      []Rules     `yaml:"rules"`       // At least one condition must match for the rule to apply
-	ThemeFiles []ThemeFile `yaml:"theme_files"` // Theme-specific files to copy
+	Path          string      `yaml:"path"`
+	Paths         []string    `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
+	Target        string      `yaml:"target"`
+	Rules         []Rules     `yaml:"rules"`          // At least one condition must match for the rule to apply
+	TemplateFiles []string    `yaml:"template_files"` // Files that need to be processed as templates, allowing the use of theme properties
+	ThemeFiles    []ThemeFile `yaml:"theme_files"`    // Theme-specific files to copy
 }
 
 type Rules struct {

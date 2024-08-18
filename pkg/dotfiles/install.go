@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
@@ -12,8 +13,9 @@ import (
 )
 
 type File struct {
-	Source string
-	Target string
+	Source         string
+	Target         string
+	IsTemplateFile bool
 }
 
 func Install(dir string, mode string, dryRun bool) error {
@@ -39,19 +41,20 @@ func Install(dir string, mode string, dryRun bool) error {
 	}
 	state.Source = source
 
-	// theme
-	theme := os.Getenv("DOTFILE_THEME")
-	if theme != "" {
-		state.Theme = theme
-	} else {
-		theme = state.Theme
-	}
-
 	// load config
 	conf, err := config.Load(filepath.Join(source, "dotfiles.yaml"))
 	if err != nil {
 		log.Fatal().Err(err).Str("file", filepath.Join(source, "config.yaml")).Msg("failed to parse config file")
 	}
+
+	// theme
+	themeName := os.Getenv("DOTFILE_THEME")
+	if themeName != "" {
+		state.Theme = themeName
+	} else {
+		themeName = state.Theme
+	}
+	theme := conf.GetTheme(themeName)
 
 	// information
 	log.Info().Bool("dry-run", dryRun).Str("mode", mode).Str("source", source).Msg("installing dotfiles")
@@ -69,6 +72,7 @@ func Install(dir string, mode string, dryRun bool) error {
 	for _, file := range state.ManagedFiles {
 		log.Debug().Str("file", file).Msg("removing file")
 		if dryRun {
+			managedFiles = append(managedFiles, file)
 			continue
 		}
 
@@ -119,9 +123,16 @@ func Install(dir string, mode string, dryRun bool) error {
 			}
 			targetFile := filepath.Join(targetPath, relativeFile)
 
+			// force template mode for designated files
+			isTemplateFile := false
+			if slices.Contains(dir.TemplateFiles, filepath.Join(dir.Path, relativeFile)) {
+				isTemplateFile = true
+			}
+
 			filesToProcess = append(filesToProcess, File{
-				Source: file,
-				Target: targetFile,
+				Source:         file,
+				Target:         targetFile,
+				IsTemplateFile: isTemplateFile,
 			})
 		}
 
@@ -129,7 +140,7 @@ func Install(dir string, mode string, dryRun bool) error {
 		if len(dir.ThemeFiles) > 0 {
 			for _, tf := range dir.ThemeFiles {
 				// use theme-specific source, fallback to first source if not available
-				source := tf.Sources[theme]
+				source := tf.Sources[themeName]
 				if source == "" {
 					for _, src := range tf.Sources {
 						source = src
@@ -142,6 +153,12 @@ func Install(dir string, mode string, dryRun bool) error {
 					continue
 				}
 
+				// force template mode for designated files
+				isTemplateFile := false
+				if slices.Contains(dir.TemplateFiles, source) {
+					isTemplateFile = true
+				}
+
 				// resolve full path if not absolute
 				if !filepath.IsAbs(source) {
 					source = filepath.Join(fullPath, source)
@@ -149,10 +166,17 @@ func Install(dir string, mode string, dryRun bool) error {
 
 				// append to files
 				filesToProcess = append(filesToProcess, File{
-					Source: source,
-					Target: util.ResolvePath(tf.Target),
+					Source:         source,
+					Target:         util.ResolvePath(tf.Target),
+					IsTemplateFile: isTemplateFile,
 				})
 			}
+		}
+
+		// properties
+		properties := map[string]string{}
+		if theme != nil {
+			properties = theme.Properties
 		}
 
 		// process files
@@ -164,12 +188,18 @@ func Install(dir string, mode string, dryRun bool) error {
 				continue
 			}
 
+			// determine mode
+			fileMode := mode
+			if f.IsTemplateFile {
+				fileMode = "template"
+			}
+
 			// copy or link file
-			linkErr := util.LinkFile(f.Source, f.Target, dryRun, mode)
+			linkErr := util.LinkFile(f.Source, f.Target, dryRun, fileMode, properties)
 			if linkErr != nil {
 				log.Fatal().Err(linkErr).Str("source", f.Source).Str("target", f.Target).Msg("failed to link file")
 			}
-			log.Trace().Str("source", f.Source).Str("target", f.Target).Str("mode", mode).Msg("process file")
+			log.Trace().Str("source", f.Source).Str("target", f.Target).Str("mode", fileMode).Msg("process file")
 
 			// state
 			state.ManagedFiles = append(state.ManagedFiles, f.Target)
