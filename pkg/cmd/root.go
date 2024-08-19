@@ -38,7 +38,6 @@ func rootCmd() *cobra.Command {
 
 	cmd.AddCommand(installCmd())
 	cmd.AddCommand(cleanCmd())
-	cmd.AddCommand(listThemeCmd())
 	cmd.AddCommand(queryCmd())
 	cmd.AddCommand(versionCmd())
 
