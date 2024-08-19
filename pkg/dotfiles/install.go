@@ -8,7 +8,6 @@ import (
 
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
-	"github.com/adrg/xdg"
 	"github.com/cidverse/go-rules/pkg/expr"
 	"github.com/iancoleman/strcase"
 	"github.com/rs/zerolog/log"
@@ -205,10 +204,10 @@ func Install(dir string, mode string, dryRun bool) error {
 		}
 	}
 
-	// write state files
-	err = writeStateFiles(state.Source, state.Theme)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to write state files")
+	// persist state (in case any of the commands query the state)
+	saveErr := config.SaveState(stateFile, state)
+	if saveErr != nil {
+		log.Fatal().Err(saveErr).Msg("failed to save state")
 	}
 
 	// theme activation
@@ -250,31 +249,6 @@ func activateTheme(theme *config.ThemeConfig, activationCommands []config.ThemeC
 			log.Warn().Err(err).Str("command", cmd.Command).Msg("failed to execute theme activation command")
 			// return errors.Join(fmt.Errorf("failed to execute theme activation command: %s", cmd), err)
 		}
-	}
-
-	return nil
-}
-
-func writeStateFiles(sourceDir string, theme string) error {
-	// create state directory
-	stateDir := filepath.Join(xdg.StateHome, "dotfiles")
-	err := util.CreateParentDirectory(stateDir)
-	if err != nil {
-		return err
-	}
-
-	// write source file
-	sourceFile := filepath.Join(stateDir, "source-dir")
-	err = os.WriteFile(sourceFile, []byte(sourceDir), 0644)
-	if err != nil {
-		return err
-	}
-
-	// write theme file
-	themeFile := filepath.Join(stateDir, "current-theme")
-	err = os.WriteFile(themeFile, []byte(theme), 0644)
-	if err != nil {
-		return err
 	}
 
 	return nil

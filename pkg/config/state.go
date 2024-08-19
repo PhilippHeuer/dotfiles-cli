@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/adrg/xdg"
 )
 
@@ -47,6 +48,12 @@ func LoadState(file string) (*DotfileState, error) {
 }
 
 func SaveState(file string, state *DotfileState) error {
+	// create state directory
+	err := util.CreateParentDirectory(file)
+	if err != nil {
+		return err
+	}
+
 	// write to file
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
