@@ -10,8 +10,9 @@ import (
 )
 
 type DotfilesConfig struct {
-	Themes      []ThemeConfig `yaml:"themes"`
-	Directories []Dir         `yaml:"directories"`
+	Themes      []ThemeConfig  `yaml:"themes"`             // Themes defines theme-specific configurations
+	Commands    []ThemeCommand `yaml:"activationCommands"` // Commands to run when a theme is activated
+	Directories []Dir          `yaml:"directories"`        // Directories to copy
 }
 
 func (c *DotfilesConfig) GetTheme(name string) *ThemeConfig {
@@ -24,14 +25,22 @@ func (c *DotfilesConfig) GetTheme(name string) *ThemeConfig {
 }
 
 type ThemeConfig struct {
-	Name       string            `yaml:"name"`
-	Properties map[string]string `yaml:"properties"`
-	Commands   []ThemeCommand    `yaml:"commands"`
+	Name         string            `yaml:"name"`
+	ColorScheme  string            `yaml:"colorScheme"`
+	WallpaperDir string            `yaml:"wallpaperDir"`
+	FontFamily   string            `yaml:"fontFamily"`
+	FontSize     string            `yaml:"fontSize"`
+	CosmicTheme  string            `yaml:"cosmicTheme"`
+	GtkTheme     string            `yaml:"gtkTheme"`
+	IconTheme    string            `yaml:"iconTheme"`
+	CursorTheme  string            `yaml:"cursorTheme"`
+	Properties   map[string]string `yaml:"properties"`
+	Commands     []ThemeCommand    `yaml:"commands"`
 }
 
 type ThemeCommand struct {
 	Command   string `yaml:"command"`
-	OnChange  bool   `yaml:"on_change"`
+	OnChange  bool   `yaml:"onChange"`
 	Condition string `yaml:"condition"`
 }
 
@@ -39,9 +48,9 @@ type Dir struct {
 	Path          string      `yaml:"path"`
 	Paths         []string    `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
 	Target        string      `yaml:"target"`
-	Rules         []Rules     `yaml:"rules"`          // At least one condition must match for the rule to apply
-	TemplateFiles []string    `yaml:"template_files"` // Files that need to be processed as templates, allowing the use of theme properties
-	ThemeFiles    []ThemeFile `yaml:"theme_files"`    // Theme-specific files to copy
+	Rules         []Rules     `yaml:"rules"`         // At least one condition must match for the rule to apply
+	TemplateFiles []string    `yaml:"templateFiles"` // Files that need to be processed as templates, allowing the use of theme properties
+	ThemeFiles    []ThemeFile `yaml:"themeFiles"`    // Theme-specific files to copy
 }
 
 type Rules struct {

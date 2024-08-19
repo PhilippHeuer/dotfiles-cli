@@ -10,6 +10,7 @@ import (
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/adrg/xdg"
 	"github.com/cidverse/go-rules/pkg/expr"
+	"github.com/iancoleman/strcase"
 	"github.com/rs/zerolog/log"
 )
 
@@ -118,11 +119,14 @@ func Install(dir string, mode string, dryRun bool) error {
 		}
 
 		// theme-specific files
-		if len(dir.ThemeFiles) > 0 {
+		if theme != nil && len(dir.ThemeFiles) > 0 {
 			for _, tf := range dir.ThemeFiles {
-				// use theme-specific source, fallback to first source if not available
-				source := tf.Sources[themeName]
-				if source == "" {
+				// use theme-specific source
+				source := tf.Sources[theme.Name]
+				if source == "" { // fallback to color scheme
+					source = tf.Sources[theme.ColorScheme]
+				}
+				if source == "" { // fallback to first source
 					for _, src := range tf.Sources {
 						source = src
 						break
@@ -155,9 +159,22 @@ func Install(dir string, mode string, dryRun bool) error {
 		}
 
 		// properties
-		properties := map[string]string{}
+		var properties map[string]string
 		if theme != nil {
-			properties = theme.Properties
+			properties = map[string]string{
+				"Name":         themeName,
+				"ColorScheme":  theme.ColorScheme,
+				"WallpaperDir": theme.WallpaperDir,
+				"FontFamily":   theme.FontFamily,
+				"FontSize":     theme.FontSize,
+				"GtkTheme":     theme.GtkTheme,
+				"CosmicTheme":  theme.CosmicTheme,
+				"IconTheme":    theme.IconTheme,
+				"CursorTheme":  theme.CursorTheme,
+			}
+			for k, v := range theme.Properties {
+				properties[strcase.ToCamel(k)] = v
+			}
 		}
 
 		// process files
@@ -195,7 +212,7 @@ func Install(dir string, mode string, dryRun bool) error {
 
 	// theme activation
 	if theme != nil && !dryRun {
-		err = activateTheme(theme, originalThemeName)
+		err = activateTheme(theme, conf.Commands, originalThemeName)
 		if err != nil {
 			log.Fatal().Err(err).Str("theme", themeName).Msg("failed to activate theme")
 		}
@@ -205,8 +222,8 @@ func Install(dir string, mode string, dryRun bool) error {
 }
 
 // activateTheme executes the theme activation commands, if available
-func activateTheme(theme *config.ThemeConfig, originalThemeName string) error {
-	for _, cmd := range theme.Commands {
+func activateTheme(theme *config.ThemeConfig, activationCommands []config.ThemeCommand, originalThemeName string) error {
+	for _, cmd := range append(activationCommands, theme.Commands...) {
 		log.Debug().Str("command", cmd.Command).Msg("executing theme command")
 
 		if cmd.Condition != "" {
