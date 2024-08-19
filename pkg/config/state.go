@@ -9,9 +9,10 @@ import (
 )
 
 type DotfileState struct {
-	Theme        string   `json:"theme"`
-	Source       string   `json:"source"`
-	ManagedFiles []string `json:"managed_files"`
+	Theme        string       `json:"theme"`
+	ActiveTheme  *ThemeConfig `json:"active_theme"`
+	Source       string       `json:"source"`
+	ManagedFiles []string     `json:"managed_files"`
 }
 
 func StateFile() string {

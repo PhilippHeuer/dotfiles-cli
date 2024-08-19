@@ -21,11 +21,12 @@ chmod +x ~/.local/bin/dotfiles
 
 ## Usage
 
-| Command                                      | Description                                                |
-|----------------------------------------------|------------------------------------------------------------|
-| `dotfiles install ~/dotfiles --mode symlink` | Installs files by creating symlinks                        |
-| `dotfiles install ~/dotfiles --mode copy`    | Installs files by making copies                            |
-| `dotfiles clean`                             | Cleans all tracked files, keeping directories (from state) |
+| Command                                      | Description                                                        |
+|----------------------------------------------|--------------------------------------------------------------------|
+| `dotfiles install ~/dotfiles --mode symlink` | Installs files by creating symlinks                                |
+| `dotfiles install ~/dotfiles --mode copy`    | Installs files by making copies                                    |
+| `dotfiles query FontFamily`                  | Queries the state file for app information (e.g. theme properties) |
+| `dotfiles clean`                             | Cleans all tracked files, keeping directories (from state)         |
 
 After the first installation, you can run the `dotfiles install` command without the source directory as it is stored in the app state.
 
@@ -43,6 +44,8 @@ You can make use of rules to only install files based on the installed software.
   rules:
   - rule: inPath("alacritty")
 ```
+
+For alle available rules, see the [Rule Reference](#rule-reference).
 
 ## Theme Support
 
@@ -97,6 +100,13 @@ themes:
 
 The following values are available for templating: `Name`, `ColorScheme`, `WallpaperDir`, `FontFamily`, `FontSize`, `GtkTheme`, `CosmicTheme`, `IconTheme`, `CursorTheme`.
 Additionally, any value you define in the theme properties will be available (in CamelCase).
+
+## Rule Reference
+
+The rules make use of [cel-go](https://github.com/google/cel-go) expressions, additionally the following functions are available:
+
+- `inPath("alacritty")`: Checks if path contains the given executable.
+- TODO: document all functions
 
 ## License
 

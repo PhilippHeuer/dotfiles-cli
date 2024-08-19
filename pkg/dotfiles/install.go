@@ -58,6 +58,7 @@ func Install(dir string, mode string, dryRun bool) error {
 		themeName = state.Theme
 	}
 	theme := conf.GetTheme(themeName)
+	state.ActiveTheme = theme
 
 	// information
 	log.Info().Bool("dry-run", dryRun).Str("mode", mode).Str("source", source).Msg("installing dotfiles")
