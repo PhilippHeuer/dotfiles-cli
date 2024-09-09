@@ -43,7 +43,7 @@ func Install(dir string, mode string, dryRun bool) error {
 	state.Source = source
 
 	// load config
-	conf, err := config.Load(filepath.Join(source, "dotfiles.yaml"))
+	conf, err := config.Load(filepath.Join(source, "dotfiles.yaml"), true)
 	if err != nil {
 		log.Fatal().Err(err).Str("file", filepath.Join(source, "config.yaml")).Msg("failed to parse config file")
 	}

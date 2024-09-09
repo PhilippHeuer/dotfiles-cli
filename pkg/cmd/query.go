@@ -31,7 +31,7 @@ func queryCmd() *cobra.Command {
 			}
 
 			// load config
-			conf, err := config.Load(filepath.Join(state.Source, "dotfiles.yaml"))
+			conf, err := config.Load(filepath.Join(state.Source, "dotfiles.yaml"), true)
 			if err != nil {
 				log.Fatal().Err(err).Str("file", filepath.Join(state.Source, "config.yaml")).Msg("failed to parse config file")
 			}

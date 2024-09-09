@@ -13,6 +13,7 @@ type DotfilesConfig struct {
 	Themes      []ThemeConfig  `yaml:"themes"`             // Themes defines theme-specific configurations
 	Commands    []ThemeCommand `yaml:"activationCommands"` // Commands to run when a theme is activated
 	Directories []Dir          `yaml:"directories"`        // Directories to copy
+	Includes    []string       `yaml:"includes"`           // Include optional configuration files
 }
 
 func (c *DotfilesConfig) GetTheme(name string) *ThemeConfig {
