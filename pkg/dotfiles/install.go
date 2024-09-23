@@ -159,19 +159,19 @@ func Install(dir string, mode string, dryRun bool) error {
 		}
 
 		// properties
-		var properties map[string]string
+		var properties = map[string]string{
+			"Home": os.Getenv("HOME"),
+			"User": os.Getenv("USER"),
+		}
 		if theme != nil {
-			properties = map[string]string{
-				"Name":         themeName,
-				"ColorScheme":  theme.ColorScheme,
-				"WallpaperDir": theme.WallpaperDir,
-				"FontFamily":   theme.FontFamily,
-				"FontSize":     theme.FontSize,
-				"GtkTheme":     theme.GtkTheme,
-				"CosmicTheme":  theme.CosmicTheme,
-				"IconTheme":    theme.IconTheme,
-				"CursorTheme":  theme.CursorTheme,
-			}
+			properties["Name"] = themeName
+			properties["ColorScheme"] = theme.ColorScheme
+			properties["WallpaperDir"] = theme.WallpaperDir
+			properties["FontFamily"] = theme.FontFamily
+			properties["FontSize"] = theme.FontSize
+			properties["GtkTheme"] = theme.GtkTheme
+			properties["IconTheme"] = theme.IconTheme
+			properties["CursorTheme"] = theme.CursorTheme
 			for k, v := range theme.Properties {
 				properties[strcase.ToCamel(k)] = v
 			}

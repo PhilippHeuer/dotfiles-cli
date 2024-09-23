@@ -31,7 +31,6 @@ type ThemeConfig struct {
 	WallpaperDir string            `yaml:"wallpaperDir"`
 	FontFamily   string            `yaml:"fontFamily"`
 	FontSize     string            `yaml:"fontSize"`
-	CosmicTheme  string            `yaml:"cosmicTheme"`
 	GtkTheme     string            `yaml:"gtkTheme"`
 	IconTheme    string            `yaml:"iconTheme"`
 	CursorTheme  string            `yaml:"cursorTheme"`

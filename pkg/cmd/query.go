@@ -58,7 +58,6 @@ func queryCmd() *cobra.Command {
 				_, _ = fmt.Fprintln(w, "WallpaperDir\t"+at.WallpaperDir)
 				_, _ = fmt.Fprintln(w, "FontFamily\t"+at.FontFamily)
 				_, _ = fmt.Fprintln(w, "FontSize\t"+at.FontSize)
-				_, _ = fmt.Fprintln(w, "CosmicTheme\t"+at.CosmicTheme)
 				_, _ = fmt.Fprintln(w, "GtkTheme\t"+at.GtkTheme)
 				_, _ = fmt.Fprintln(w, "IconTheme\t"+at.IconTheme)
 				_, _ = fmt.Fprintln(w, "CursorTheme\t"+at.CursorTheme)
@@ -80,9 +79,6 @@ func queryCmd() *cobra.Command {
 			case "fontsize":
 				requireActiveTheme(state)
 				fmt.Println(state.ActiveTheme.FontSize)
-			case "cosmictheme":
-				requireActiveTheme(state)
-				fmt.Println(state.ActiveTheme.CosmicTheme)
 			case "gtktheme":
 				requireActiveTheme(state)
 				fmt.Println(state.ActiveTheme.GtkTheme)
