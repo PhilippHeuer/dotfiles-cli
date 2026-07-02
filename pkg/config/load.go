@@ -1,10 +1,10 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 
-	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,6 +17,7 @@ func Load(file string, require bool) (*DotfilesConfig, error) {
 	}
 	baseDir := filepath.Dir(absFile)
 
+	// if file does not exist, return empty state
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		if !require {
 			return &cfg, nil
@@ -24,11 +25,13 @@ func Load(file string, require bool) (*DotfilesConfig, error) {
 		return nil, err
 	}
 
+	// read file
 	fileContent, fileReadErr := os.ReadFile(file)
 	if fileReadErr != nil {
 		return nil, fileReadErr
 	}
 
+	// unmarshal
 	yamlErr := yaml.Unmarshal(fileContent, &cfg)
 	if yamlErr != nil {
 		return nil, yamlErr
@@ -40,7 +43,7 @@ func Load(file string, require bool) (*DotfilesConfig, error) {
 			if !filepath.IsAbs(include) {
 				includePath = filepath.Join(baseDir, include)
 			}
-			log.Debug().Str("file", includePath).Msg("including config file")
+			slog.Debug("including config file", "file", includePath)
 
 			includeCfg, err := Load(includePath, false)
 			if err != nil {

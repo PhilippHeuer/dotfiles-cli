@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/dotfiles"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -18,13 +20,14 @@ func cleanCmd() *cobra.Command {
 
 			// load state
 			stateFile := config.StateFile()
-			err := util.CreateParentDirectory(stateFile)
-			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to create state directory")
+			if err := util.CreateParentDirectory(stateFile); err != nil {
+				slog.Error("failed to create state directory", "file", stateFile, "err", err)
+				os.Exit(1)
 			}
 			state, err := config.LoadState(stateFile)
 			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to parse state file")
+				slog.Error("failed to parse state file", "file", stateFile, "err", err)
+				os.Exit(1)
 			}
 
 			// remove files
@@ -32,9 +35,9 @@ func cleanCmd() *cobra.Command {
 
 			// save state
 			if !dryRun {
-				saveErr := config.SaveState(stateFile, state)
-				if saveErr != nil {
-					log.Fatal().Err(saveErr).Msg("failed to save state")
+				if saveErr := config.SaveState(stateFile, state); saveErr != nil {
+					slog.Error("failed to save state", "err", saveErr)
+					os.Exit(1)
 				}
 			}
 		},

@@ -45,15 +45,7 @@ func ResolvePath(path string) string {
 }
 
 func CreateParentDirectory(path string) error {
-	// get parent directory
-	parentDir := filepath.Dir(path)
-
-	// create parent directory
-	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		return err
-	}
-
-	return nil
+	return os.MkdirAll(filepath.Dir(path), 0755)
 }
 
 func LinkFile(source string, target string, dryRun bool, mode string, properties map[string]string) error {
@@ -61,99 +53,73 @@ func LinkFile(source string, target string, dryRun bool, mode string, properties
 		return nil
 	}
 
-	// create parent directory
 	if err := CreateParentDirectory(target); err != nil {
 		return err
 	}
 
-	// check if file exists
 	if _, err := os.Stat(target); err == nil {
 		return nil
 	}
 
-	// create symlink
 	switch mode {
 	case "template":
-		if err := copyFileWithTemplate(source, target, properties); err != nil {
-			return fmt.Errorf("failed to copy file with template: %w", err)
-		}
+		return copyFileWithTemplate(source, target, properties)
 	case "copy":
-		if err := copyFile(source, target); err != nil {
-			return fmt.Errorf("failed to copy file: %w", err)
-		}
+		return copyFile(source, target)
 	case "symlink":
-		if err := createOrUpdateSymlink(source, target); err != nil {
-			return fmt.Errorf("failed to create symlink: %w", err)
-		}
+		return createOrUpdateSymlink(source, target)
 	default:
 		return fmt.Errorf("invalid mode: %s (valid values: copy, symlink)", mode)
 	}
-
-	return nil
 }
 
 func copyFile(source string, target string) error {
-	sourceFile, err := os.Open(source)
+	src, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer src.Close()
 
-	targetFile, err := os.Create(target)
+	tgt, err := os.Create(target)
 	if err != nil {
 		return err
 	}
-	defer targetFile.Close()
+	defer tgt.Close()
 
-	_, err = io.Copy(targetFile, sourceFile)
-	if err != nil {
+	if _, err := io.Copy(tgt, src); err != nil {
 		return err
 	}
 
-	if isExecutable(source) {
-		err = makeExecutableByOwner(target)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return ensureExecutable(source, target)
 }
 
 func copyFileWithTemplate(source string, target string, data map[string]string) error {
-	sourceFile, err := os.Open(source)
+	src, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer src.Close()
 
-	targetFile, err := os.Create(target)
+	tgt, err := os.Create(target)
 	if err != nil {
 		return err
 	}
-	defer targetFile.Close()
+	defer tgt.Close()
 
-	sourceContent, err := io.ReadAll(sourceFile)
-	if err != nil {
-		return err
-	}
-	tmpl, err := template.New("template").Parse(string(sourceContent))
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(targetFile, data)
+	content, err := io.ReadAll(src)
 	if err != nil {
 		return err
 	}
 
-	if isExecutable(source) {
-		err = makeExecutableByOwner(target)
-		if err != nil {
-			return err
-		}
+	tmpl, err := template.New("template").Parse(string(content))
+	if err != nil {
+		return err
+	}
+	if err := tmpl.Execute(tgt, data); err != nil {
+		return err
 	}
 
-	return nil
+	return ensureExecutable(source, target)
 }
 
 func createOrUpdateSymlink(source string, target string) error {
@@ -190,25 +156,14 @@ func createOrUpdateSymlink(source string, target string) error {
 	return nil
 }
 
-func isExecutable(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
+func ensureExecutable(source, target string) error {
+	srcInfo, err := os.Stat(source)
+	if err != nil || srcInfo.Mode()&0100 == 0 {
+		return nil
 	}
-
-	return info.Mode()&0100 != 0
-}
-
-func makeExecutableByOwner(path string) error {
-	info, err := os.Stat(path)
+	tgtInfo, err := os.Stat(target)
 	if err != nil {
 		return err
 	}
-
-	newMode := info.Mode() | 0100
-	if err := os.Chmod(path, newMode); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Chmod(target, tgtInfo.Mode()|0100)
 }

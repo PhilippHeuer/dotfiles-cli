@@ -1,9 +1,8 @@
 package dotfiles
 
 import (
+	"log/slog"
 	"os"
-
-	"github.com/rs/zerolog/log"
 )
 
 // DeleteManagedFiles deletes all files listed in managedFiles.
@@ -13,7 +12,7 @@ func DeleteManagedFiles(managedFiles []string, dryRun bool) []string {
 	var failedToDelete []string
 
 	for _, file := range managedFiles {
-		log.Debug().Str("file", file).Msg("removing file")
+		slog.Debug("removing file", "file", file)
 
 		if dryRun {
 			failedToDelete = append(failedToDelete, file)
@@ -21,13 +20,13 @@ func DeleteManagedFiles(managedFiles []string, dryRun bool) []string {
 		}
 
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			log.Trace().Str("file", file).Msg("file does not exist, already deleted")
+			slog.Debug("file does not exist, already deleted", "file", file)
 			continue
 		}
 
 		if err := os.Remove(file); err != nil {
 			failedToDelete = append(failedToDelete, file)
-			log.Debug().Err(err).Str("file", file).Msg("failed to remove file")
+			slog.Debug("failed to remove file", "file", file, "err", err)
 		}
 	}
 

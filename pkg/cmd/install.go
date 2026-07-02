@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"log/slog"
+
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/dotfiles"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -21,9 +22,8 @@ func installCmd() *cobra.Command {
 			}
 
 			// install
-			err := dotfiles.Install(dir, mode, dryRun)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to install dotfiles")
+			if err := dotfiles.Install(dir, mode, dryRun); err != nil {
+				slog.Error("failed to install dotfiles", "err", err)
 			}
 		},
 	}

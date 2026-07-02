@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/cidverse/go-rules/pkg/expr"
-	"github.com/rs/zerolog/log"
+	"log/slog"
 )
 
 type DotfilesConfig struct {
@@ -64,30 +64,41 @@ type ThemeFile struct {
 }
 
 func EvaluateRules(conditions []Rules, sourceFile string) bool {
-	if len(conditions) == 0 {
-		return true
-	}
+	return EvaluateRulesWithContext(buildRuleContext(), conditions, sourceFile)
+}
 
+// RuleContext holds the shared context for rule evaluation (user, theme, wsl).
+type RuleContext map[string]interface{}
+
+// BuildRuleContext creates a shared rule context that can be reused across files.
+// Only the "file" field changes per-file; everything else is constant.
+func BuildRuleContext() RuleContext {
 	// user
+	var username string
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get current user")
+		slog.Debug("failed to get current user, falling back to USER env var", "err", err)
+		username = os.Getenv("USER")
+	} else {
+		username = currentUser.Username
 	}
 
 	// context
 	ctx := map[string]interface{}{
-		"user":  currentUser.Username,
+		"user":  username,
 		"theme": os.Getenv("DOTFILE_THEME"),
-		"file":  sourceFile,
+		"wsl":   os.Getenv("WSL_DISTRO_NAME") != "",
 	}
 
-	// wsl distro
-	wslDistro := os.Getenv("WSL_DISTRO_NAME")
-	if wslDistro != "" {
-		ctx["wsl"] = true
-	} else {
-		ctx["wsl"] = false
+	return RuleContext(ctx)
+}
+
+func EvaluateRulesWithContext(ctx RuleContext, conditions []Rules, sourceFile string) bool {
+	if len(conditions) == 0 {
+		return true
 	}
+
+	ctx["file"] = sourceFile
 
 	// evaluate
 	for _, c := range conditions {
@@ -99,7 +110,8 @@ func EvaluateRules(conditions []Rules, sourceFile string) bool {
 		// match expression
 		match, cErr := expr.EvaluateRule(c.Rule, ctx)
 		if cErr != nil {
-			log.Fatal().Err(cErr).Str("rule", c.Rule).Msg("failed to evaluate condition, check your configuration file syntax")
+			slog.Error("failed to evaluate condition, check your configuration file syntax", "rule", c.Rule, "err", cErr)
+			os.Exit(1)
 		}
 		if match {
 			return true

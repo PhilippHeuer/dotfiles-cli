@@ -1,8 +1,9 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/cmd"
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -23,8 +24,7 @@ func init() {
 
 // CLI Main Entrypoint
 func main() {
-	cmdErr := cmd.Execute()
-	if cmdErr != nil {
-		log.Fatal().Err(cmdErr).Msg("cli error")
+	if err := cmd.Execute(); err != nil {
+		slog.Error("cli error", "err", err)
 	}
 }

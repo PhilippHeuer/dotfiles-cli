@@ -17,8 +17,8 @@ type DotfileState struct {
 }
 
 func StateFile() string {
-	if os.Getenv("DOTFILE_STATE_FILE") != "" {
-		return os.ExpandEnv("$DOTFILE_STATE_FILE")
+	if v := os.Getenv("DOTFILE_STATE_FILE"); v != "" {
+		return os.ExpandEnv(v)
 	}
 	return filepath.Join(xdg.StateHome, "dotfiles", "state.json")
 }

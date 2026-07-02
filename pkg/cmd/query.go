@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/config"
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/iancoleman/strcase"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -19,21 +19,28 @@ func queryCmd() *cobra.Command {
 		Use:   "query",
 		Short: "query the application config or state",
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				slog.Error("provide a key to query")
+				os.Exit(1)
+			}
+
 			// load state
 			stateFile := config.StateFile()
-			err := util.CreateParentDirectory(stateFile)
-			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to create state directory")
+			if err := util.CreateParentDirectory(stateFile); err != nil {
+				slog.Error("failed to create state directory", "file", stateFile, "err", err)
+				os.Exit(1)
 			}
 			state, err := config.LoadState(stateFile)
 			if err != nil {
-				log.Fatal().Err(err).Str("file", stateFile).Msg("failed to parse state file")
+				slog.Error("failed to parse state file", "file", stateFile, "err", err)
+				os.Exit(1)
 			}
 
 			// load config
 			conf, err := config.Load(filepath.Join(state.Source, "dotfiles.yaml"), true)
 			if err != nil {
-				log.Fatal().Err(err).Str("file", filepath.Join(state.Source, "config.yaml")).Msg("failed to parse config file")
+				slog.Error("failed to parse config file", "file", filepath.Join(state.Source, "config.yaml"), "err", err)
+				os.Exit(1)
 			}
 
 			// check if the key is a property
@@ -103,7 +110,7 @@ func queryCmd() *cobra.Command {
 					}
 				}
 
-				log.Fatal().Str("key", key).Msg("property not found")
+				slog.Error("property not found", "key", key)
 				os.Exit(1)
 			}
 		},
@@ -114,6 +121,7 @@ func queryCmd() *cobra.Command {
 
 func requireActiveTheme(state *config.DotfileState) {
 	if state.ActiveTheme == nil {
-		log.Fatal().Msg("active theme not set")
+		slog.Error("active theme not set")
+		os.Exit(1)
 	}
 }

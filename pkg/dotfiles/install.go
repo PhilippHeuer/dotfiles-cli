@@ -2,6 +2,7 @@ package dotfiles
 
 import (
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,7 +11,6 @@ import (
 	"github.com/PhilippHeuer/dotfiles-cli/pkg/util"
 	"github.com/cidverse/go-rules/pkg/expr"
 	"github.com/iancoleman/strcase"
-	"github.com/rs/zerolog/log"
 )
 
 type File struct {
@@ -22,13 +22,14 @@ type File struct {
 func Install(dir string, mode string, dryRun bool) error {
 	// load state
 	stateFile := config.StateFile()
-	err := util.CreateParentDirectory(stateFile)
-	if err != nil {
-		log.Fatal().Err(err).Str("file", stateFile).Msg("failed to create state directory")
+	if err := util.CreateParentDirectory(stateFile); err != nil {
+		slog.Error("failed to create state directory", "file", stateFile, "err", err)
+		os.Exit(1)
 	}
 	state, err := config.LoadState(stateFile)
 	if err != nil {
-		log.Fatal().Err(err).Str("file", stateFile).Msg("failed to parse state file")
+		slog.Error("failed to parse state file", "file", stateFile, "err", err)
+		os.Exit(1)
 	}
 
 	// source dir (first arg or from state)
@@ -38,14 +39,16 @@ func Install(dir string, mode string, dryRun bool) error {
 	} else if state.Source != "" {
 		source = state.Source
 	} else {
-		log.Fatal().Msg("provide the source directory as first argument")
+		slog.Error("provide the source directory as first argument")
+		os.Exit(1)
 	}
 	state.Source = source
 
 	// load config
 	conf, err := config.Load(filepath.Join(source, "dotfiles.yaml"), true)
 	if err != nil {
-		log.Fatal().Err(err).Str("file", filepath.Join(source, "config.yaml")).Msg("failed to parse config file")
+		slog.Error("failed to parse config file", "file", filepath.Join(source, "dotfiles.yaml"), "err", err)
+		os.Exit(1)
 	}
 
 	// theme
@@ -60,18 +63,32 @@ func Install(dir string, mode string, dryRun bool) error {
 	state.ActiveTheme = theme
 
 	// information
-	log.Info().Bool("dry-run", dryRun).Str("mode", mode).Str("source", source).Msg("installing dotfiles")
-
-	// save state on exit or error
-	defer func() {
-		saveErr := config.SaveState(stateFile, state)
-		if saveErr != nil {
-			log.Fatal().Err(saveErr).Msg("failed to save state")
-		}
-	}()
+	slog.Info("installing dotfiles", "dry-run", dryRun, "mode", mode, "source", source)
 
 	// remove files
 	state.ManagedFiles = DeleteManagedFiles(state.ManagedFiles, dryRun)
+
+	// properties (built once, reused for all directories)
+	properties := map[string]string{
+		"Home": os.Getenv("HOME"),
+		"User": os.Getenv("USER"),
+	}
+	if theme != nil {
+		properties["Name"] = themeName
+		properties["ColorScheme"] = theme.ColorScheme
+		properties["WallpaperDir"] = theme.WallpaperDir
+		properties["FontFamily"] = theme.FontFamily
+		properties["FontSize"] = theme.FontSize
+		properties["GtkTheme"] = theme.GtkTheme
+		properties["IconTheme"] = theme.IconTheme
+		properties["CursorTheme"] = theme.CursorTheme
+		for k, v := range theme.Properties {
+			properties[strcase.ToCamel(k)] = v
+		}
+	}
+
+	// rule context (built once, reused for all files)
+	ruleCtx := config.BuildRuleContext()
 
 	// process directories
 	for _, dir := range conf.Directories {
@@ -92,7 +109,7 @@ func Install(dir string, mode string, dryRun bool) error {
 		// get all files in source
 		files, filesErr := util.GetAllFiles(fullPath)
 		if filesErr != nil {
-			log.Info().Err(filesErr).Str("source", source).Msg("source does not exist, skipping")
+			slog.Info("source does not exist, skipping", "source", source, "err", filesErr)
 			continue
 		}
 
@@ -101,7 +118,7 @@ func Install(dir string, mode string, dryRun bool) error {
 		for _, file := range files {
 			relativeFile, fileErr := filepath.Rel(fullPath, file)
 			if fileErr != nil {
-				return errors.New("failed to determinate relative file path for: " + file)
+				return errors.New("failed to determine relative file path for: " + file)
 			}
 			targetFile := filepath.Join(targetPath, relativeFile)
 
@@ -122,66 +139,47 @@ func Install(dir string, mode string, dryRun bool) error {
 		if theme != nil && len(dir.ThemeFiles) > 0 {
 			for _, tf := range dir.ThemeFiles {
 				// use theme-specific source
-				source := tf.Sources[theme.Name]
-				if source == "" { // fallback to color scheme
-					source = tf.Sources[theme.ColorScheme]
+				src := tf.Sources[theme.Name]
+				if src == "" { // fallback to color scheme
+					src = tf.Sources[theme.ColorScheme]
 				}
-				if source == "" { // fallback to first source
-					for _, src := range tf.Sources {
-						source = src
+				if src == "" { // fallback to first source
+					for _, s := range tf.Sources {
+						src = s
 						break
 					}
 				}
 
 				// skip if no source
-				if source == "" {
+				if src == "" {
 					continue
 				}
 
 				// force template mode for designated files
 				isTemplateFile := false
-				if slices.Contains(dir.TemplateFiles, source) {
+				if slices.Contains(dir.TemplateFiles, src) {
 					isTemplateFile = true
 				}
 
 				// resolve full path if not absolute
-				if !filepath.IsAbs(source) {
-					source = filepath.Join(fullPath, source)
+				if !filepath.IsAbs(src) {
+					src = filepath.Join(fullPath, src)
 				}
 
 				// append to files
 				filesToProcess = append(filesToProcess, File{
-					Source:         source,
+					Source:         src,
 					Target:         util.ResolvePath(tf.Target),
 					IsTemplateFile: isTemplateFile,
 				})
 			}
 		}
 
-		// properties
-		var properties = map[string]string{
-			"Home": os.Getenv("HOME"),
-			"User": os.Getenv("USER"),
-		}
-		if theme != nil {
-			properties["Name"] = themeName
-			properties["ColorScheme"] = theme.ColorScheme
-			properties["WallpaperDir"] = theme.WallpaperDir
-			properties["FontFamily"] = theme.FontFamily
-			properties["FontSize"] = theme.FontSize
-			properties["GtkTheme"] = theme.GtkTheme
-			properties["IconTheme"] = theme.IconTheme
-			properties["CursorTheme"] = theme.CursorTheme
-			for k, v := range theme.Properties {
-				properties[strcase.ToCamel(k)] = v
-			}
-		}
-
 		// process files
 		for _, f := range filesToProcess {
 			// skip if conditions do not match
-			match := config.EvaluateRules(dir.Rules, f.Source)
-			log.Debug().Str("dir", f.Source).Str("target", f.Target).Bool("condition-result", match).Msg("processing file")
+			match := config.EvaluateRulesWithContext(ruleCtx, dir.Rules, f.Source)
+			slog.Debug("processing file", "dir", f.Source, "target", f.Target, "condition-result", match)
 			if !match {
 				continue
 			}
@@ -193,11 +191,11 @@ func Install(dir string, mode string, dryRun bool) error {
 			}
 
 			// copy or link file
-			linkErr := util.LinkFile(f.Source, f.Target, dryRun, fileMode, properties)
-			if linkErr != nil {
-				log.Fatal().Err(linkErr).Str("source", f.Source).Str("target", f.Target).Msg("failed to link file")
+			if linkErr := util.LinkFile(f.Source, f.Target, dryRun, fileMode, properties); linkErr != nil {
+				slog.Error("failed to link file", "source", f.Source, "target", f.Target, "err", linkErr)
+				os.Exit(1)
 			}
-			log.Trace().Str("source", f.Source).Str("target", f.Target).Str("mode", fileMode).Msg("process file")
+			slog.Debug("process file", "source", f.Source, "target", f.Target, "mode", fileMode)
 
 			// state
 			state.ManagedFiles = append(state.ManagedFiles, f.Target)
@@ -205,16 +203,16 @@ func Install(dir string, mode string, dryRun bool) error {
 	}
 
 	// persist state (in case any of the commands query the state)
-	saveErr := config.SaveState(stateFile, state)
-	if saveErr != nil {
-		log.Fatal().Err(saveErr).Msg("failed to save state")
+	if saveErr := config.SaveState(stateFile, state); saveErr != nil {
+		slog.Error("failed to save state", "err", saveErr)
+		os.Exit(1)
 	}
 
 	// theme activation
 	if theme != nil && !dryRun {
-		err = activateTheme(theme, conf.Commands, originalThemeName)
-		if err != nil {
-			log.Fatal().Err(err).Str("theme", themeName).Msg("failed to activate theme")
+		if err := activateTheme(theme, conf.Commands, originalThemeName); err != nil {
+			slog.Error("failed to activate theme", "theme", themeName, "err", err)
+			os.Exit(1)
 		}
 	}
 
@@ -224,14 +222,14 @@ func Install(dir string, mode string, dryRun bool) error {
 // activateTheme executes the theme activation commands, if available
 func activateTheme(theme *config.ThemeConfig, activationCommands []config.ThemeCommand, originalThemeName string) error {
 	for _, cmd := range append(activationCommands, theme.Commands...) {
-		log.Debug().Str("command", cmd.Command).Msg("executing theme command")
+		slog.Debug("executing theme command", "command", cmd.Command)
 
 		if cmd.Condition != "" {
 			match, err := expr.EvalBooleanExpression(cmd.Condition, map[string]interface{}{
 				"env": os.Environ(),
 			})
 			if err != nil {
-				log.Warn().Err(err).Str("condition", cmd.Condition).Msg("failed to evaluate theme activation command condition")
+				slog.Warn("failed to evaluate theme activation command condition", "condition", cmd.Condition, "err", err)
 				continue
 			}
 
@@ -240,14 +238,12 @@ func activateTheme(theme *config.ThemeConfig, activationCommands []config.ThemeC
 			}
 		}
 		if cmd.OnChange && originalThemeName == theme.Name {
-			log.Debug().Str("command", cmd.Command).Msg("command not executed, theme did not change")
+			slog.Debug("command not executed, theme did not change", "command", cmd.Command)
 			continue
 		}
 
-		err := util.RunCommand(cmd.Command)
-		if err != nil {
-			log.Warn().Err(err).Str("command", cmd.Command).Msg("failed to execute theme activation command")
-			// return errors.Join(fmt.Errorf("failed to execute theme activation command: %s", cmd), err)
+		if err := util.RunCommand(cmd.Command); err != nil {
+			slog.Warn("failed to execute theme activation command", "command", cmd.Command, "err", err)
 		}
 	}
 

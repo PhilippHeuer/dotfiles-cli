@@ -8,20 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	cfg = struct {
-		LogLevel  string
-		LogFormat string
-		LogCaller bool
-	}{}
-	validLogLevels  = []string{"trace", "debug", "info", "warn", "error"}
-	validLogFormats = []string{"plain", "color", "json"}
-)
+var cfg zerologconfig.LogConfig
 
 func rootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   `tms`,
-		Short: `scans source directories for projects to create tmux sessions`,
+		Use:   `dotfiles`,
+		Short: `manages dotfiles installation (copy/symlink) with rule-based filtering, theme support, and template processing`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			zerologconfig.Configure(cfg)
 		},
@@ -32,8 +24,8 @@ func rootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&cfg.LogLevel, "log-level", "info", "log level - allowed: "+strings.Join(validLogLevels, ","))
-	cmd.PersistentFlags().StringVar(&cfg.LogFormat, "log-format", "color", "log format - allowed: "+strings.Join(validLogFormats, ","))
+	cmd.PersistentFlags().StringVar(&cfg.LogLevel, "log-level", "info", "log level - allowed: "+strings.Join(zerologconfig.ValidLogLevels, ","))
+	cmd.PersistentFlags().StringVar(&cfg.LogFormat, "log-format", "color", "log format - allowed: "+strings.Join(zerologconfig.ValidLogFormats, ","))
 	cmd.PersistentFlags().BoolVar(&cfg.LogCaller, "log-caller", false, "include caller in log functions")
 
 	cmd.AddCommand(installCmd())
