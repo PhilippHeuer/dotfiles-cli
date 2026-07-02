@@ -175,6 +175,12 @@ func Install(dir string, mode string, dryRun bool) error {
 			}
 		}
 
+		// determine directory mode (dir config > global flag, template always wins)
+		dirMode := mode
+		if dir.Mode != "" {
+			dirMode = dir.Mode
+		}
+
 		// process files
 		for _, f := range filesToProcess {
 			// skip if conditions do not match
@@ -184,8 +190,8 @@ func Install(dir string, mode string, dryRun bool) error {
 				continue
 			}
 
-			// determine mode
-			fileMode := mode
+			// determine mode (template > dir config > global flag)
+			fileMode := dirMode
 			if f.IsTemplateFile {
 				fileMode = "template"
 			}

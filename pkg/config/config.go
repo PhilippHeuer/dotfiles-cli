@@ -48,6 +48,7 @@ type Dir struct {
 	Path          string      `yaml:"path"`
 	Paths         []string    `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
 	Target        string      `yaml:"target"`
+	Mode          string      `yaml:"mode"`          // Override global mode for this directory (copy, symlink)
 	Rules         []Rules     `yaml:"rules"`         // At least one condition must match for the rule to apply
 	TemplateFiles []string    `yaml:"templateFiles"` // Files that need to be processed as templates, allowing the use of theme properties
 	ThemeFiles    []ThemeFile `yaml:"themeFiles"`    // Theme-specific files to copy
@@ -64,7 +65,7 @@ type ThemeFile struct {
 }
 
 func EvaluateRules(conditions []Rules, sourceFile string) bool {
-	return EvaluateRulesWithContext(buildRuleContext(), conditions, sourceFile)
+	return EvaluateRulesWithContext(BuildRuleContext(), conditions, sourceFile)
 }
 
 // RuleContext holds the shared context for rule evaluation (user, theme, wsl).
