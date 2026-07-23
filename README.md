@@ -25,6 +25,7 @@ chmod +x ~/.local/bin/dotfiles
 |----------------------------------------------|--------------------------------------------------------------------|
 | `dotfiles install ~/dotfiles --mode symlink` | Installs files by creating symlinks                                |
 | `dotfiles install ~/dotfiles --mode copy`    | Installs files by making copies                                    |
+| `dotfiles install ~/dotfiles --context-file ./env --context key=val` | Pass extra context variables for rule evaluation    |
 | `dotfiles query FontFamily`                  | Queries the state file for app information (e.g. theme properties) |
 | `dotfiles clean`                             | Cleans all tracked files, keeping directories (from state)         |
 
@@ -146,6 +147,63 @@ The following values are available for templating: `Name`, `ColorScheme`, `Wallp
 Additionally, any value you define in the theme properties will be available (in CamelCase).
 
 ## Rule Reference
+
+Rules use [cel-go](https://github.com/google/cel-go) expressions evaluated against a context of variables and functions.
+
+### Context Variables
+
+The following variables are available in rules:
+
+| Variable     | Type    | Description                         |
+|--------------|---------|-------------------------------------|
+| `user`       | string  | Current OS username                 |
+| `home`       | string  | Home directory path                 |
+| `hostname`   | string  | Machine hostname                    |
+| `theme`      | string  | Value of `$DOTFILE_THEME` env var   |
+| `wsl`        | bool    | True if running under WSL           |
+| `file`       | string  | Absolute source file path (per-file)|
+
+### Context Functions
+
+- `inPath("alacritty")`: Checks if path contains the given executable.
+
+### Custom Context Values
+
+You can extend the context with additional values via CLI flags:
+
+| Variable     | Type    | Description                         |
+|--------------|---------|-------------------------------------|
+| `user`       | string  | Current OS username                 |
+| `home`       | string  | Home directory path                 |
+| `hostname`   | string  | Machine hostname                    |
+| `theme`      | string  | Value of `$DOTFILE_THEME` env var   |
+| `wsl`        | bool    | True if running under WSL           |
+| `file`       | string  | Absolute source file path (per-file)|
+
+You can extend the context with additional values via CLI flags:
+
+```bash
+# from a key=value file
+dotfiles install ~/dotfiles --context-file ~/machine-context.env
+
+# inline key=value pairs (combines with --context-file, inline takes precedence)
+dotfiles install ~/dotfiles --context kitty_manage_config=true --context alacritty_manage_config=0
+```
+
+Context file format (`machine-context.env`):
+```env
+kitty_manage_config=true
+alacritty_manage_config=0
+name=Philipp
+```
+
+Values are auto-typed: `true`/`false` → bool, `42` → int, `3.14` → float, everything else → string.
+
+Example rule using context:
+```yaml
+rules:
+  - rule: kitty_manage_config == true
+```
 
 The rules make use of [cel-go](https://github.com/google/cel-go) expressions, additionally the following functions are available:
 

@@ -80,22 +80,30 @@ type RuleContext map[string]interface{}
 
 // BuildRuleContext creates a shared rule context that can be reused across files.
 // Only the "file" field changes per-file; everything else is constant.
+// Available variables: user, home, hostname, theme, wsl
 func BuildRuleContext() RuleContext {
-	// user
-	var username string
+	// user info
+	var username, homeDir string
 	currentUser, err := user.Current()
 	if err != nil {
-		slog.Debug("failed to get current user, falling back to USER env var", "err", err)
+		slog.Debug("failed to get current user, falling back to env vars", "err", err)
 		username = os.Getenv("USER")
+		homeDir = os.Getenv("HOME")
 	} else {
 		username = currentUser.Username
+		homeDir = currentUser.HomeDir
 	}
+
+	// hostname
+	hostname, _ := os.Hostname()
 
 	// context
 	ctx := map[string]interface{}{
-		"user":  username,
-		"theme": os.Getenv("DOTFILE_THEME"),
-		"wsl":   os.Getenv("WSL_DISTRO_NAME") != "",
+		"user":     username,
+		"home":     homeDir,
+		"hostname": hostname,
+		"theme":    os.Getenv("DOTFILE_THEME"),
+		"wsl":      os.Getenv("WSL_DISTRO_NAME") != "",
 	}
 
 	return RuleContext(ctx)

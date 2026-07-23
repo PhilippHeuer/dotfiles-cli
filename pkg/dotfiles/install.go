@@ -2,6 +2,7 @@ package dotfiles
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ type File struct {
 	IsTemplateFile bool
 }
 
-func Install(dir string, mode string, dryRun bool) error {
+func Install(dir string, mode string, dryRun bool, extraContext map[string]interface{}) error {
 	// load state
 	stateFile := config.StateFile()
 	if err := util.CreateParentDirectory(stateFile); err != nil {
@@ -89,6 +90,19 @@ func Install(dir string, mode string, dryRun bool) error {
 
 	// rule context (built once, reused for all files)
 	ruleCtx := config.BuildRuleContext()
+	for k, v := range extraContext {
+		ruleCtx[k] = v
+		switch val := v.(type) {
+		case string:
+			properties[strcase.ToCamel(k)] = val
+		case bool:
+			properties[strcase.ToCamel(k)] = fmt.Sprintf("%t", val)
+		case int64:
+			properties[strcase.ToCamel(k)] = fmt.Sprintf("%d", val)
+		case float64:
+			properties[strcase.ToCamel(k)] = fmt.Sprintf("%v", val)
+		}
+	}
 
 	// process directories
 	for _, dir := range conf.Directories {
