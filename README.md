@@ -34,18 +34,64 @@ After the first installation, you can run the `dotfiles install` command without
 
 ## Configuration
 
-Your `~/dotfiles` repository needs to contain a `dotfiles.yaml` file, which defines the configuration for all directories. 
+Your `~/dotfiles` repository needs to contain a `dotfiles.yaml` file, which defines the configuration for all directories.
 You can make use of rules to only install files based on the installed software.
 
+### Structure Overview
+
 ```yaml
-# alacritty
-- path: config/alacritty
-  target: $HOME/.config/alacritty
-  rules:
-  - rule: inPath("alacritty")
+# include additional config files (merged, supports ~ and env vars)
+includes:
+  - ~/.dotfiles-overlay.yaml
+
+# directories to install
+directories:
+  - path: config/alacritty                  # source path (relative to dotfiles source)
+    target: $HOME/.config/alacritty          # destination path
+    mode: symlink                            # optional: override global mode (copy, symlink)
+    rules:
+    - rule: inPath("alacritty")
+    templateFiles:                           # optional: files to process with Go templates
+      - config/alacritty/alacritty.toml
+    themeFiles:                              # optional: theme-dependent file symlinks
+      - target: $HOME/.config/alacritty/themes/current.toml
+        sources:
+          catppuccin-mocha: themes/catppuccin-mocha.toml
+          rose-pine: themes/rose-pine.toml
+    linkFiles:                               # optional: individual file symlinks with fallback paths
+      - paths:
+          - ~/.config/oracle/personal/tnsnames.ora
+          - oracle/global/tnsnames.ora
+        target: tnsnames.ora
+        mode: symlink
 ```
 
-For alle available rules, see the [Rule Reference](#rule-reference).
+For all available rules, see the [Rule Reference](#rule-reference).
+
+### `linkFiles` — File Symlinks with Fallback
+
+Define individual file symlinks with ordered fallback sources. Paths starting with `~/` or `/` are used as-is; relative paths are resolved relative to the directory's source path (for `paths`) or target path (for `target`):
+
+```yaml
+- path: oracle
+  target: $HOME/.config/oracle
+  linkFiles:
+    - paths:
+        - ~/.config/oracle/personal/tnsnames.ora   # absolute (home dir override)
+        - global/tnsnames.ora                        # relative to oracle/ source dir
+      target: tnsnames.ora                           # relative to $HOME/.config/oracle
+      mode: symlink
+```
+
+### `includes` — Config Merging
+
+Include and merge additional YAML config files (absolute path or relative to the config file's directory):
+
+```yaml
+includes:
+  - machine-specific.yaml
+  - /home/user/.dotfiles/secrets.yaml
+```
 
 ## Theme Support
 
@@ -53,7 +99,6 @@ You can specify themes for your dotfiles, which can be used to copy/link files b
 The following example shows a simple theme configuration for Alacritty, you can import `$HOME/.config/alacritty/themes/current.toml` in your Alacritty configuration.
 
 ```yaml
-# themes
 themes:
 - name: catppuccin-mocha
   font-family: JetBrainsMono Nerd Font Mono
@@ -61,13 +106,13 @@ themes:
   properties:
     yourCustomProperty: value
 
-# alacritty
+directories:
 - path: config/alacritty
   target: $HOME/.config/alacritty
   rules:
   - rule: inPath("alacritty")
-  theme_files:
-  # this allows you to import the themes/current.toml from your config and symlink the content based on the theme
+  themeFiles:
+  # allows you to import the themes/current.toml from your config and symlink the content based on the theme
   - target: $HOME/.config/alacritty/themes/current.toml
     sources:
       catppuccin-mocha: themes/catppuccin-mocha.toml
@@ -81,7 +126,6 @@ themes:
 You can toggle template processing by setting the `templateFiles` property in your configuration, files will always be copied regardless of the mode (`copy`, `symlink`, ...).
 
 ```yaml
-# themes
 themes:
 - name: catppuccin-mocha
   font-family: JetBrainsMono Nerd Font Mono
@@ -89,7 +133,7 @@ themes:
   properties:
     yourCustomProperty: value
 
-# alacritty
+directories:
 - path: config/alacritty
   target: $HOME/.config/alacritty
   rules:
