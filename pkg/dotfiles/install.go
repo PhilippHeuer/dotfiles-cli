@@ -162,9 +162,7 @@ func Install(dir string, mode string, dryRun bool) error {
 				}
 
 				// resolve full path if not absolute
-				if !filepath.IsAbs(src) {
-					src = filepath.Join(fullPath, src)
-				}
+				src = util.ResolvePathRelative(src, fullPath)
 
 				// append to files
 				filesToProcess = append(filesToProcess, File{
@@ -205,6 +203,41 @@ func Install(dir string, mode string, dryRun bool) error {
 
 			// state
 			state.ManagedFiles = append(state.ManagedFiles, f.Target)
+		}
+
+		// link files with fallback paths (run after regular files so symlinks from this dir exist)
+		for _, fm := range dir.LinkFiles {
+			linkTarget := util.ResolvePathRelative(fm.Target, targetPath)
+
+			// find first source path that exists
+			sourcePath := ""
+			for _, p := range fm.Paths {
+				fp := util.ResolvePathRelative(p, fullPath)
+				if _, err := os.Stat(fp); !os.IsNotExist(err) {
+					sourcePath = fp
+					break
+				}
+			}
+			if sourcePath == "" {
+				slog.Warn("no source file found for mapping, skipping", "target", linkTarget, "paths", fm.Paths)
+				continue
+			}
+
+			// determine mode (file config > dir config > global flag)
+			fileMode := dirMode
+			if fm.Mode != "" {
+				fileMode = fm.Mode
+			}
+
+			// copy or link file
+			if linkErr := util.LinkFile(sourcePath, linkTarget, dryRun, fileMode, properties); linkErr != nil {
+				slog.Error("failed to link file", "source", sourcePath, "target", linkTarget, "err", linkErr)
+				os.Exit(1)
+			}
+			slog.Debug("process file mapping", "source", sourcePath, "target", linkTarget, "mode", fileMode)
+
+			// state
+			state.ManagedFiles = append(state.ManagedFiles, linkTarget)
 		}
 	}
 

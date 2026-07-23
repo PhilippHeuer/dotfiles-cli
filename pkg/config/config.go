@@ -45,13 +45,14 @@ type ThemeCommand struct {
 }
 
 type Dir struct {
-	Path          string      `yaml:"path"`
-	Paths         []string    `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
-	Target        string      `yaml:"target"`
-	Mode          string      `yaml:"mode"`          // Override global mode for this directory (copy, symlink)
-	Rules         []Rules     `yaml:"rules"`         // At least one condition must match for the rule to apply
-	TemplateFiles []string    `yaml:"templateFiles"` // Files that need to be processed as templates, allowing the use of theme properties
-	ThemeFiles    []ThemeFile `yaml:"themeFiles"`    // Theme-specific files to copy
+	Path          string        `yaml:"path"`
+	Paths         []string      `yaml:"paths"` // Can be used to specify multiple possible paths, first one that exists will be used.
+	Target        string        `yaml:"target"`
+	Mode          string        `yaml:"mode"`          // Override global mode for this directory (copy, symlink)
+	Rules         []Rules       `yaml:"rules"`         // At least one condition must match for the rule to apply
+	TemplateFiles []string      `yaml:"templateFiles"` // Files that need to be processed as templates, allowing the use of theme properties
+	ThemeFiles    []ThemeFile   `yaml:"themeFiles"`    // Theme-specific files to copy
+	LinkFiles     []LinkFile    `yaml:"linkFiles"`     // Individual file symlinks with fallback paths
 }
 
 type Rules struct {
@@ -62,6 +63,12 @@ type Rules struct {
 type ThemeFile struct {
 	Target  string            `yaml:"target"`
 	Sources map[string]string `yaml:"sources"`
+}
+
+type LinkFile struct {
+	Paths  []string `yaml:"paths"`  // Ordered list of source candidates (absolute or ~/ paths), first that exists wins
+	Target string   `yaml:"target"` // Destination path (supports ~/ and env vars)
+	Mode   string   `yaml:"mode"`   // Override global mode for this file (copy, symlink)
 }
 
 func EvaluateRules(conditions []Rules, sourceFile string) bool {

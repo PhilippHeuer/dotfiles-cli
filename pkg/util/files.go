@@ -44,6 +44,13 @@ func ResolvePath(path string) string {
 	return path
 }
 
+func ResolvePathRelative(path, base string) string {
+	if strings.HasPrefix(path, "~") || filepath.IsAbs(path) {
+		return ResolvePath(path)
+	}
+	return ResolvePath(filepath.Join(base, path))
+}
+
 func CreateParentDirectory(path string) error {
 	return os.MkdirAll(filepath.Dir(path), 0755)
 }
