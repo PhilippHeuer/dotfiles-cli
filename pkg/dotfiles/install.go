@@ -20,7 +20,7 @@ type File struct {
 	IsTemplateFile bool
 }
 
-func Install(dir string, mode string, dryRun bool, extraContext map[string]interface{}) error {
+func Install(dir string, mode string, dryRun bool, extraContext map[string]interface{}, themeOverride string) error {
 	// load state
 	stateFile := config.StateFile()
 	if err := util.CreateParentDirectory(stateFile); err != nil {
@@ -52,14 +52,16 @@ func Install(dir string, mode string, dryRun bool, extraContext map[string]inter
 		os.Exit(1)
 	}
 
-	// theme
+	// theme (env > flag, and falls back to persisted state; flag is only used when env is unset)
 	themeName := os.Getenv("DOTFILE_THEME")
-	originalThemeName := state.Theme
-	if themeName != "" {
-		state.Theme = themeName
-	} else {
+	if themeName == "" {
+		themeName = themeOverride
+	}
+	if themeName == "" {
 		themeName = state.Theme
 	}
+	originalThemeName := state.Theme
+	state.Theme = themeName
 	theme := conf.GetTheme(themeName)
 	state.ActiveTheme = theme
 

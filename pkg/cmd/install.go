@@ -17,6 +17,7 @@ func installCmd() *cobra.Command {
 			// properties
 			mode, _ := cmd.Flags().GetString("mode")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			theme, _ := cmd.Flags().GetString("theme")
 
 			dir := ""
 			if len(args) == 1 && args[0] != "" {
@@ -47,7 +48,7 @@ func installCmd() *cobra.Command {
 			}
 
 			// install
-			if err := dotfiles.Install(dir, mode, dryRun, extraContext); err != nil {
+			if err := dotfiles.Install(dir, mode, dryRun, extraContext, theme); err != nil {
 				slog.Error("failed to install dotfiles", "err", err)
 			}
 		},
@@ -55,6 +56,7 @@ func installCmd() *cobra.Command {
 
 	cmd.PersistentFlags().String("mode", "copy", "copy or symlink")
 	cmd.PersistentFlags().BoolP("dry-run", "d", false, "dry run")
+	cmd.PersistentFlags().String("theme", "", "theme to install (overrides DOTFILE_THEME env var)")
 	cmd.PersistentFlags().String("context-file", "", "path to a key=value context file")
 	cmd.PersistentFlags().StringSlice("context", []string{}, "additional context key=value pairs")
 
